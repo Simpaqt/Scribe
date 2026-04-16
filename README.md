@@ -1,4 +1,5 @@
 # About
+aksldj
 
 Rustymemo is a fast and intuitive CLI note-taking tool that lets you manage notes from anywhere in your terminal. Built with Rust and featuring a modern TUI interface, it's designed for developers who want quick access to their notes without leaving the command line.
 
