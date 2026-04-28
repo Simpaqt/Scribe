@@ -224,18 +224,16 @@ pub fn run_tui(directory: &str) -> Result<(), io::Error> {
                     }
                 },
                 AppMode::Create => match key.code {
-                    KeyCode::Enter => {
-                        if !app.input.is_empty() {
-                            let file_path = Path::new(&app.directory).join(&app.input);
-                            if !file_path.exists() {
-                                if create_new_note(file_path.to_str().unwrap()).is_ok() {
-                                    app.refresh_notes();
-                                }
+                    KeyCode::Enter if !app.input.is_empty() => {
+                        let file_path = Path::new(&app.directory).join(&app.input);
+                        if !file_path.exists()
+                            && create_new_note(file_path.to_str().unwrap()).is_ok() {
+                                app.refresh_notes();
                             }
-                            app.input.clear();
-                            app.mode = AppMode::Normal;
-                        }
+                        app.input.clear();
+                        app.mode = AppMode::Normal;
                     }
+                    KeyCode::Enter => {}
                     KeyCode::Esc => {
                         app.input.clear();
                         app.mode = AppMode::Normal;

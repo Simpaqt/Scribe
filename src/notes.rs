@@ -1,5 +1,4 @@
 use std::{fs, io};
-use dirs;
 
 /// Create a new note file at the specified path
 pub fn create_new_note(file_path: &str) -> Result<(), io::Error> {
