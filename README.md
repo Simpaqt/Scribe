@@ -1,126 +1,147 @@
-# About
+# Scribe
 
-Rustymemo is a fast and intuitive CLI note-taking tool that lets you manage notes from anywhere in your terminal. Built with Rust and featuring a modern TUI interface, it's designed for developers who want quick access to their notes without leaving the command line.
+Scribe is a terminal-native tool for writing, organising, previewing and
+exporting [AsciiDoc](https://asciidoc.org/) notes and documentation. It started
+life as **Rustymemo**, a quick TUI for plain text notes, and grew into a
+focused AsciiDoc workflow that still gets out of the way and lets you edit in
+your favourite `$EDITOR`.
 
-## ✨ Features
+## Features
 
-- **📝 Quick Note Creation**: Create notes instantly from any directory
-- **🔍 Fuzzy Search**: Find notes quickly with real-time fuzzy matching
-- **⚡ Fast Navigation**: Vim-like keybindings for efficient navigation
-- **🎨 Modern UI**: Clean terminal interface with helpful status bar
-- **📁 Organized Storage**: All notes saved to `~/notes` directory
-- **🔧 Editor Integration**: Opens notes in your preferred editor (cross-platform support)
-- **🪟 Windows Compatible**: Works seamlessly on Windows, Linux, and macOS
+- Fast TUI for browsing AsciiDoc documents in a directory of your choice
+- Document creation with built-in templates (blank, Technical README, daily journal)
+- Fuzzy search across documents
+- Toggleable in-pane preview rendered by `asciidoctor`
+- One-key export to HTML (`asciidoctor`) or PDF (`asciidoctor-pdf`)
+- Headless CLI flags for scripting (`--new`, `--list`, `--export`)
+- Editor-agnostic — opens documents in `$EDITOR` (defaults to `nvim`)
+- Configurable storage directory via `--dir` or `$SCRIBE_DIR`
 
-### What you can do:
-
-1. **Create** new notes that are saved to `~/notes`
-2. **Search** through notes with fuzzy matching
-3. **Edit** existing notes in your preferred editor
-4. **Delete** notes with confirmation
-5. **Navigate** efficiently with vim-like keybindings
-
-# Installation
-
-Currently the only way to install is with cargo
+## Installation
 
 ### Prerequisites
 
-You'll need Rust 1.56+ (for Rust 2021 edition support) and cargo. Install using rustup:
+- Rust 1.70+ and `cargo` ([rustup](https://rustup.rs/))
+- `asciidoctor` (Ruby gem) — required for preview and HTML export
+- `asciidoctor-pdf` — optional, required only for PDF export
+- A terminal editor referenced by `$EDITOR` (defaults to `nvim`)
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Install the AsciiDoc toolchain (one-time)
+gem install asciidoctor asciidoctor-pdf
 ```
 
-### Build and Install
+### Build & install
 
 ```bash
 git clone https://github.com/Simpaqt/Rustymemo.git
-cd Rustymemo/
+cd Rustymemo
 cargo build --release
-mv target/release/Rustymemo ~/.local/bin/
+install -m 0755 target/release/scribe ~/.local/bin/scribe
 ```
 
-**On Linux/macOS:**
-Make sure `~/.local/bin` is in your PATH, or alternatively install to a directory that's already in your PATH:
+Make sure `~/.local/bin` (or wherever you placed the binary) is in your `PATH`.
+
+## Usage
 
 ```bash
-# Alternative: install to /usr/local/bin (requires sudo)
-sudo mv target/release/Rustymemo /usr/local/bin/
+scribe                       # launch the TUI on the default directory
+scribe --here                # launch the TUI on the current working directory
+scribe -H                    # short form of --here
+scribe --dir ~/docs          # use a custom directory
+SCRIBE_DIR=~/docs scribe     # same via env var
+scribe --list                # list documents and exit
+scribe --new "Project Plan" --template readme           # create in ~/notes
+scribe -H --new "README" --template readme              # create in CWD
+scribe --export ~/docs/plan.adoc --format pdf -o ~/plan.pdf
 ```
 
-**On Windows:**
-Add the executable to a directory in your PATH, or add the directory to your PATH:
+### Working in the current directory
 
-```powershell
-# Move to a directory in your PATH
-move target\release\Rustymemo.exe C:\Windows\System32\
-```
+There are two ways to target your current shell directory instead of the
+configured notes directory:
 
-## 🚀 Usage
+- **`-H` / `--here`** on the CLI applies to every command (TUI, `--new`,
+  `--list`, `--export`).
+- **Inside the TUI**:
+  - **`I`** (capital) creates a document directly in the process's working
+    directory using the currently selected template.
+  - **`T`** (capital) opens the template picker and lands the resulting
+    document in the current working directory.
+  - Lowercase `i` / `t` still target the configured notes directory.
+  - The create-mode and template-picker title bars tell you which target will
+    be used.
 
-Simply run `Rustymemo` from anywhere in your terminal to launch the application.
+### Directory & format conventions
 
-### 🔧 Editor Configuration
+- New documents always end with `.adoc` (added automatically if you forget).
+- The list view shows only `.adoc`/`.asciidoc` files by default. Pass `--all`
+  to include everything in the directory.
+- Default directory: `~/notes` (kept for backward compatibility with
+  Rustymemo). Override with `--dir` or `$SCRIBE_DIR`.
 
-Rustymemo automatically detects the best available text editor for your platform:
+### Templates
 
-- **Linux/macOS**: Uses `nvim` by default
-- **Windows**: Tries VS Code (`code`), Notepad++ (`notepad++`), then falls back to `notepad`
-- **Custom Editor**: Set the `EDITOR` environment variable to use your preferred editor
+Selectable via `--template <name>` on the CLI, or in the TUI by pressing `t`:
 
-To set a custom editor:
+| Name      | Description                              |
+| --------- | ---------------------------------------- |
+| `blank`   | Minimal AsciiDoc header                  |
+| `readme`  | Technical README skeleton                |
+| `journal` | Date-stamped daily journal entry         |
+
+Templates substitute `{{title}}`, `{{author}}` (from `$USER`/`$USERNAME`) and
+`{{date}}` (today, `YYYY-MM-DD`).
+
+### Keybindings
+
+#### Normal mode
+
+| Key      | Action                                      |
+| -------- | ------------------------------------------- |
+| `j`/`k`  | Move down / up (arrow keys also work)       |
+| `o`      | Open selected document in `$EDITOR`         |
+| `i`      | Create a new document in the configured directory |
+| `I`      | Create a new document in the current working directory |
+| `t`      | Pick a template, then create in the configured directory |
+| `T`      | Pick a template, then create in the current working directory |
+| `/`      | Enter fuzzy search                          |
+| `p`      | Toggle preview pane                         |
+| `e` `h`  | Export selected document to HTML            |
+| `e` `p`  | Export selected document to PDF             |
+| `d` `d`  | Delete selected document (press `d` twice)  |
+| `q`      | Quit                                        |
+
+#### Create mode
+
+Type the title (extension optional) and press `Enter`. `Esc` cancels.
+
+#### Template picker
+
+`j`/`k` to choose, `Enter` to confirm, `Esc` to cancel.
+
+#### Search mode
+
+Type to filter. `j`/`k` or arrow keys navigate, `Enter` opens, `Esc` exits.
+
+## Editor configuration
+
+Scribe respects `$EDITOR` everywhere. Fallbacks:
+
+- Linux/macOS: `nvim`
+- Windows: tries `code`, `notepad++`, then `notepad`
 
 ```bash
-# Linux/macOS
-export EDITOR=vim  # or nano, emacs, etc.
-
-# Windows (PowerShell)
-$env:EDITOR = "code"  # or "notepad++", "vim", etc.
+export EDITOR=hx     # or vim, nano, code, etc.
 ```
 
-Rustymemo features an intuitive interface with a dynamic status bar that shows context-sensitive help and keybinding hints for the current mode. The interface adapts based on what you're doing:
+## Notes on the rename
 
-### Navigation
-- **`j` / `k`** - Move up and down through notes (works in all modes)
-- **`↑` / `↓`** - Alternative navigation (works in search mode)
-
-### Actions
-- **`i`** - Create a new note
-- **`o`** - Open selected note in your default editor
-- **`/`** - Enter search mode for fuzzy finding
-- **`dd`** - Delete note (press 'd' twice for confirmation)
-- **`q`** - Quit application
-
-### Search Mode
-- **Type** - Filter notes with fuzzy matching in real-time
-- **`j` / `k`** - Navigate through filtered results
-- **`↑` / `↓`** - Alternative navigation through filtered results
-- **`Enter`** - Open selected note from search results
-- **`Backspace`** - Remove characters from search query
-- **`Esc`** - Exit search mode and return to normal view
-
-### Create Mode
-- **Type** - Enter note name
-- **`Enter`** - Create the note (only if name is not empty and file doesn't exist)
-- **`Backspace`** - Remove characters from note name
-- **`Esc`** - Cancel creation and return to normal mode
-
-### 💡 Smart Interface Features
-
-- **Dynamic Status Bar**: Shows context-sensitive help and available keybindings for the current mode
-- **Real-time Search**: Fuzzy matching updates results as you type
-- **Visual Feedback**: Clear indicators for different modes (Normal, Create, Search)
-- **Confirmation Prompts**: Safe deletion with double-key confirmation
-- **Responsive Navigation**: Vim-like keybindings that work consistently across modes
-
-The status bar at the bottom always shows available keybindings for the current mode, so you never have to memorize commands!
-
-### Showcase
-
-
-https://github.com/user-attachments/assets/75d06d42-76c3-4ce9-8540-6f5c35bbb86f
+Scribe is the successor to **Rustymemo**. The repository name still reflects
+the original project, but the package and binary are now `scribe`. Existing
+notes in `~/notes` continue to work; only `.adoc`/`.asciidoc` files appear by
+default, so add `--all` if you still want to see your old plain-text notes.
 
 ---
 
-**Built with ❤️ in Rust** • Fast, reliable, and terminal-native
+Built with Rust, `ratatui`, `crossterm` and `clap`.

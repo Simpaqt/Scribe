@@ -1,0 +1,60 @@
+= README
+simpa
+2026-05-16
+:toc: left
+:icons: font
+:source-highlighter: rouge
+
+== Overview
+
+Scribe is a terminal-native tool for writing, organising, previewing and
+exporting https://asciidoc.org/[asciidoc] notes and documentation. It started
+life as **Rustymemo**, a quick TUI for plain text notes, and grew into a
+focused AsciiDoc workflow that still gets out of the way and lets you edit in
+your favourite `$EDITOR`.
+
+== Features
+
+* Fast TUI for browsing AsciiDoc documents in a directory of your choice
+* Document creation with built-in templates (blank, Technical README, daily journal)
+* Fuzzy search across documents
+* Toggleable in-pane preview rendered by `asciidoctor`
+* One-key export to HTML (`asciidoctor`) or PDF (`asciidoctor-pdf`)
+* Headless CLI flags for scripting (`--new`, `--list`, `--export`)
+* Editor-agnostic — opens documents in `$EDITOR` (defaults to `nvim`)
+* Configurable storage directory via `--dir` or `$SCRIBE_DIR`
+
+== Installation
+
+[source,bash]
+----
+# Install the AsciiDoc toolchain (one-time)
+gem install asciidoctor asciidoctor-pdf
+----
+
+== Usage
+
+[source,bash]
+----
+scribe                       # launch the TUI on the default directory
+scribe --here                # launch the TUI on the current working directory
+scribe -H                    # short form of --here
+scribe --dir ~/docs          # use a custom directory
+SCRIBE_DIR=~/docs scribe     # same via env var
+scribe --list                # list documents and exit
+scribe --new "Project Plan" --template readme           # create in ~/notes
+scribe -H --new "README" --template readme              # create in CWD
+scribe --export ~/docs/plan.adoc --format pdf -o ~/plan.pdf
+----
+
+== Configuration
+
+Describe configuration options here.
+
+== Contributing
+
+Contributions are welcome. Please open an issue or pull request.
+
+== License
+
+Specify the license here.
