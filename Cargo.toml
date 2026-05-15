@@ -1,7 +1,7 @@
 [package]
 authors = ["Simpa"]
 name = "scribe"
-version = "0.2.0"
+version = "0.2.5"
 edition = "2021"
 description = "A TUI for managing, previewing and exporting AsciiDoc notes & documentation"
 

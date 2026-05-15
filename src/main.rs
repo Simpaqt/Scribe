@@ -10,7 +10,10 @@ use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 use cli::Cli;
-use notes::{create_new_note, ensure_adoc_extension, list_notes, resolve_notes_dir, strip_adoc_extension};
+use notes::{
+    SortMode, create_new_note, ensure_adoc_extension, fmt_mtime, fmt_size, list_notes,
+    resolve_notes_dir, strip_adoc_extension,
+};
 use render::export;
 use templates::Template;
 use ui::run_tui;
@@ -27,9 +30,10 @@ fn main() -> io::Result<()> {
     };
     fs::create_dir_all(&directory)?;
 
-    // Headless modes (non-TUI).
+    let sort = parse_sort(&cli.sort);
+
     if cli.list {
-        return cmd_list(&directory, cli.all);
+        return cmd_list(&directory, cli.all, cli.recursive, sort);
     }
     if let Some(title) = cli.new.as_deref() {
         return cmd_new(&directory, title, &cli.template);
@@ -42,13 +46,23 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn cmd_list(directory: &str, all: bool) -> io::Result<()> {
-    let entries = list_notes(directory, !all)?;
+fn parse_sort(s: &str) -> SortMode {
+    match s.to_ascii_lowercase().as_str() {
+        "mtime" | "modified" | "mtime-desc" => SortMode::MtimeDesc,
+        "mtime-asc" | "oldest" => SortMode::MtimeAsc,
+        "size" => SortMode::SizeDesc,
+        _ => SortMode::NameAsc,
+    }
+}
+
+fn cmd_list(directory: &str, all: bool, recursive: bool, sort: SortMode) -> io::Result<()> {
+    let entries = list_notes(directory, !all, recursive, sort)?;
     if entries.is_empty() {
         println!("(no documents in {directory})");
     } else {
         for e in entries {
-            println!("{e}");
+            let mtime = e.mtime.map(fmt_mtime).unwrap_or_else(|| "—".to_string());
+            println!("{:>7}  {}  {}", fmt_size(e.size), mtime, e.rel_path);
         }
     }
     Ok(())
@@ -65,13 +79,12 @@ fn cmd_new(directory: &str, title: &str, template_name: &str) -> io::Result<()> 
     let bare_title = strip_adoc_extension(title).to_string();
     let path = Path::new(directory).join(&filename);
     let contents = tpl.render(&bare_title);
-    create_new_note(path.to_str().unwrap(), &contents)?;
+    create_new_note(&path, &contents)?;
     println!("Created {}", path.display());
     Ok(())
 }
 
 fn cmd_export(directory: &str, file: &str, format: &str, output: Option<&str>) -> io::Result<()> {
-    // Resolve `file` relative to the notes dir if it isn't already a real path.
     let candidate = PathBuf::from(file);
     let path = if candidate.exists() {
         candidate

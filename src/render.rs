@@ -32,10 +32,10 @@ pub fn render_preview(path: &Path) -> io::Result<String> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            format!("asciidoctor failed: {}", stderr.trim()),
-        ));
+        return Err(io::Error::other(format!(
+            "asciidoctor failed: {}",
+            stderr.trim()
+        )));
     }
 
     let html = String::from_utf8_lossy(&output.stdout).into_owned();
@@ -136,10 +136,9 @@ pub fn export(path: &Path, format: &str, output: Option<&Path>) -> io::Result<Pa
         .status()?;
 
     if !status.success() {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            format!("{bin} exited with status {status}"),
-        ));
+        return Err(io::Error::other(format!(
+            "{bin} exited with status {status}"
+        )));
     }
 
     Ok(out_path)

@@ -8,12 +8,21 @@ your favourite `$EDITOR`.
 
 ## Features
 
-- Fast TUI for browsing AsciiDoc documents in a directory of your choice
-- Document creation with built-in templates (blank, Technical README, daily journal)
-- Fuzzy search across documents
-- Toggleable in-pane preview rendered by `asciidoctor`
-- One-key export to HTML (`asciidoctor`) or PDF (`asciidoctor-pdf`)
-- Headless CLI flags for scripting (`--new`, `--list`, `--export`)
+- Fast TUI for browsing AsciiDoc documents — flat or recursive (`R`)
+- Live directory switcher: hop between projects without leaving the TUI (`c`)
+- Built-in templates (blank, Technical README, daily journal) plus user
+  templates from `~/.config/scribe/templates/*.adoc`
+- Full-text fuzzy search across filenames **and** the first 4 KB of each doc
+- Rename / move (`r`) and soft-delete with undo (`d d` → `u`)
+- Sort by name, modified time, or size (`s` cycles)
+- Scrollable in-pane preview rendered by `asciidoctor` (`p`, `Tab` to focus)
+- One-key export to HTML or PDF (`e h` / `e p`)
+- Persistent `Tab`-toggled target indicator: every create/template action
+  targets either the notes dir or your current shell directory — no more
+  capital-key shenanigans
+- Sticky status bar with a `?` help overlay
+- Headless CLI flags for scripting (`--new`, `--list`, `--export`,
+  `--recursive`, `--sort`)
 - Editor-agnostic — opens documents in `$EDITOR` (defaults to `nvim`)
 - Configurable storage directory via `--dir` or `$SCRIBE_DIR`
 
@@ -63,14 +72,12 @@ configured notes directory:
 
 - **`-H` / `--here`** on the CLI applies to every command (TUI, `--new`,
   `--list`, `--export`).
-- **Inside the TUI**:
-  - **`I`** (capital) creates a document directly in the process's working
-    directory using the currently selected template.
-  - **`T`** (capital) opens the template picker and lands the resulting
-    document in the current working directory.
-  - Lowercase `i` / `t` still target the configured notes directory.
-  - The create-mode and template-picker title bars tell you which target will
-    be used.
+- **Inside the TUI** the status bar shows a persistent target indicator
+  (`notes` vs `CWD`). Press **`Tab`** to flip it; every subsequent `i`, `t`,
+  or create-from-search action follows that target. `H` jumps the *listing*
+  itself to the current working directory; `c` opens a directory picker for
+  hopping between recent projects. The legacy capital `I` / `T` shortcuts
+  still work — they force the target to CWD for the next action.
 
 ### Directory & format conventions
 
@@ -93,24 +100,42 @@ Selectable via `--template <name>` on the CLI, or in the TUI by pressing `t`:
 Templates substitute `{{title}}`, `{{author}}` (from `$USER`/`$USERNAME`) and
 `{{date}}` (today, `YYYY-MM-DD`).
 
+#### User templates
+
+Drop any `*.adoc` file into `$XDG_CONFIG_HOME/scribe/templates/` (or
+`~/.config/scribe/templates/`) and it will appear in the template picker under
+its file stem. The same `{{title}}`, `{{author}}`, `{{date}}` substitutions
+apply.
+
 ### Keybindings
 
 #### Normal mode
 
-| Key      | Action                                      |
-| -------- | ------------------------------------------- |
-| `j`/`k`  | Move down / up (arrow keys also work)       |
-| `o`      | Open selected document in `$EDITOR`         |
-| `i`      | Create a new document in the configured directory |
-| `I`      | Create a new document in the current working directory |
-| `t`      | Pick a template, then create in the configured directory |
-| `T`      | Pick a template, then create in the current working directory |
-| `/`      | Enter fuzzy search                          |
-| `p`      | Toggle preview pane                         |
-| `e` `h`  | Export selected document to HTML            |
-| `e` `p`  | Export selected document to PDF             |
-| `d` `d`  | Delete selected document (press `d` twice)  |
-| `q`      | Quit                                        |
+| Key       | Action                                                     |
+| --------- | ---------------------------------------------------------- |
+| `j`/`k`   | Move down / up (arrows, `g` / `G`, `PgUp` / `PgDn` too)    |
+| `o`       | Open selected document in `$EDITOR`                        |
+| `i`       | Create a new document (uses current target indicator)      |
+| `t`       | Pick a template, then create                               |
+| `I` / `T` | Same as `i` / `t`, forced to CWD as a one-shot             |
+| `r`       | Rename / move selected document                            |
+| `d` `d`   | Soft-delete (moves to `<dir>/.scribe-trash/`)              |
+| `u`       | Undo last delete                                           |
+| `/`       | Open fuzzy search (filename + first 4 KB of body)          |
+| `n` / `N` | Re-enter / clear the last search                           |
+| `s`       | Cycle sort: name → mtime↓ → mtime↑ → size↓                 |
+| `R`       | Toggle recursive listing of subdirectories                 |
+| `c`       | Open the directory picker (recent dirs + free entry)       |
+| `H`       | Jump the listing to the current working directory          |
+| `Tab`     | Toggle target (notes ↔ CWD); when preview is open, toggles list/preview focus instead — use `Shift-Tab` to always toggle target |
+| `p`       | Toggle preview pane                                        |
+| `e` `h`   | Export selected document to HTML                           |
+| `e` `p`   | Export selected document to PDF                            |
+| `?`       | Help overlay                                               |
+| `q`       | Quit                                                       |
+
+When the preview pane has focus (`Tab`), `j` / `k` / `g` / `G` / `PgUp` /
+`PgDn` scroll the preview instead of moving the list selection.
 
 #### Create mode
 
@@ -122,7 +147,20 @@ Type the title (extension optional) and press `Enter`. `Esc` cancels.
 
 #### Search mode
 
-Type to filter. `j`/`k` or arrow keys navigate, `Enter` opens, `Esc` exits.
+Type to filter (filename + body fuzzy). Arrow keys navigate, `Enter` opens
+the highlighted match. **`Ctrl-N`** creates a new note titled after your
+current query and opens it. `Esc` clears the query.
+
+#### Rename mode
+
+Type the new path/name and press `Enter`. You can include subdirectories
+(e.g. `projects/foo/spec.adoc`) — parent dirs are created as needed. The
+`.adoc` extension is added if missing. `Esc` cancels.
+
+#### Directory picker
+
+`j`/`k` to choose from recent dirs, `Enter` to switch. Or type a path in the
+input box (`~` is expanded) and press `Enter`. `Esc` cancels.
 
 ## Editor configuration
 

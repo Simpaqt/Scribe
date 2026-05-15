@@ -43,6 +43,14 @@ pub struct Cli {
     /// List documents and exit
     #[arg(long)]
     pub list: bool,
+
+    /// Recurse into subdirectories when listing
+    #[arg(short = 'r', long)]
+    pub recursive: bool,
+
+    /// Sort: name | mtime | mtime-asc | size
+    #[arg(long, default_value = "name")]
+    pub sort: String,
 }
 
 #[derive(Copy, Clone, Debug, ValueEnum)]
