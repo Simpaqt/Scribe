@@ -182,7 +182,7 @@ impl App {
             {
                 self.state.select(Some(pos));
             }
-        }
+
         self.preview_cache = None;
     }
 
