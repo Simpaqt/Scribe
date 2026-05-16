@@ -89,8 +89,6 @@ pub struct App {
     pub template_state: ListState,
     pub templates: Vec<Template>,
     pub chosen_template: Template,
-    /// Persistent target indicator toggled by `Tab`.
-    pub target_cwd: bool,
 
     /// Last soft-deleted note (for `u` to restore).
     pub last_trash: Option<TrashRecord>,
@@ -152,7 +150,6 @@ impl App {
             template_state,
             templates,
             chosen_template,
-            target_cwd: false,
 
             last_trash: None,
             rename_from: None,
@@ -166,6 +163,7 @@ impl App {
 
     /// Re-read the directory listing and rebuild the search index.
     pub fn refresh_notes(&mut self) {
+        let previous = self.selected_rel_path().map(str::to_owned);
         self.notes =
             list_notes(&self.directory, !self.show_all, self.recursive, self.sort).unwrap_or_default();
         self.body_index.clear();
@@ -175,7 +173,16 @@ impl App {
                 self.body_index.insert(note.rel_path.clone(), head);
             }
         }
-        self.recompute_filter(true);
+        self.recompute_filter(false);
+        if let Some(previous) = previous {
+            if let Some(pos) = self
+                .filtered_indices
+                .iter()
+                .position(|&i| self.notes[i].rel_path == previous)
+            {
+                self.state.select(Some(pos));
+            }
+        }
         self.preview_cache = None;
     }
 
@@ -304,32 +311,6 @@ impl App {
     pub fn toggle_recursive(&mut self) {
         self.recursive = !self.recursive;
         self.refresh_notes();
-    }
-
-    pub fn toggle_target(&mut self) {
-        self.target_cwd = !self.target_cwd;
-    }
-
-    pub fn target_label(&self) -> String {
-        if self.target_cwd {
-            format!(
-                "CWD ({})",
-                std::env::current_dir()
-                    .ok()
-                    .and_then(|p| p.to_str().map(|s| s.to_string()))
-                    .unwrap_or_else(|| ".".to_string())
-            )
-        } else {
-            format!("notes ({})", self.directory)
-        }
-    }
-
-    pub fn target_dir(&self) -> PathBuf {
-        if self.target_cwd {
-            std::env::current_dir().unwrap_or_else(|_| PathBuf::from(&self.directory))
-        } else {
-            PathBuf::from(&self.directory)
-        }
     }
 
     pub fn change_directory(&mut self, new_dir: &str) {

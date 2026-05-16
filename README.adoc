@@ -24,9 +24,6 @@ your favourite `$EDITOR`.
 * Sort by name, modified time, or size (`s` cycles)
 * Scrollable in-pane preview rendered by `asciidoctor` (`p`, `Tab` to focus)
 * One-key export to HTML or PDF (`e h` / `e p`)
-* Persistent `Tab`-toggled target indicator: every create/template action
-  targets either the notes dir or your current shell directory — no more
-  capital-key shenanigans
 * Sticky status bar with a `?` help overlay
 * Headless CLI flags for scripting (`--new`, `--list`, `--export`,
   `--recursive`, `--sort`)
@@ -84,12 +81,10 @@ configured notes directory:
 
 * *`-H` / `--here`* on the CLI applies to every command (TUI, `--new`,
   `--list`, `--export`).
-* *Inside the TUI* the status bar shows a persistent target indicator
-  (`notes` vs `CWD`). Press *`Tab`* to flip it; every subsequent `i`, `t`,
-  or create-from-search action follows that target. `H` jumps the _listing_
-  itself to the current working directory; `c` opens a directory picker for
-  hopping between recent projects. The legacy capital `I` / `T` shortcuts
-  still work — they force the target to CWD for the next action.
+* *Inside the TUI*, creation always lands in the directory you're currently
+  listing. Use *`c`* to open the directory picker (recent dirs + free path
+  entry), or *`H`* to jump the listing to your current shell directory.
+  Then `i` / `t` create the new doc there.
 
 === Directory & format conventions
 
@@ -132,9 +127,8 @@ substitutions apply.
 
 | `j`/`k`   | Move down / up (arrows, `g` / `G`, `PgUp` / `PgDn` too)
 | `o`       | Open selected document in `$EDITOR`
-| `i`       | Create a new document (uses current target indicator)
+| `i`       | Create a new document in the currently listed directory
 | `t`       | Pick a template, then create
-| `I` / `T` | Same as `i` / `t`, forced to CWD as a one-shot
 | `r`       | Rename / move selected document
 | `d` `d`   | Soft-delete (moves to `<dir>/.scribe-trash/`)
 | `u`       | Undo last delete
@@ -144,7 +138,7 @@ substitutions apply.
 | `R`       | Toggle recursive listing of subdirectories
 | `c`       | Open the directory picker (recent dirs + free entry)
 | `H`       | Jump the listing to the current working directory
-| `Tab`     | Toggle target (notes ↔ CWD); when preview is open, toggles list/preview focus instead — use `Shift-Tab` to always toggle target
+| `Tab`     | Toggle list / preview focus (only when preview is open)
 | `p`       | Toggle preview pane
 | `e` `h`   | Export selected document to HTML
 | `e` `p`   | Export selected document to PDF
@@ -185,7 +179,7 @@ input box (`~` is expanded) and press `Enter`. `Esc` cancels.
 Scribe respects `$EDITOR` everywhere. Fallbacks:
 
 * Linux/macOS: `nvim`
-* Windows: `notepad`
+* Windows: tried `code`, `notepad++`, then `notepad`
 
 [source,bash]
 ----

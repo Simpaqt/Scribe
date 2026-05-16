@@ -214,25 +214,23 @@ fn draw_list(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
             .collect()
     };
 
-    let target_hint = if app.target_cwd { "CWD" } else { "notes" };
     let recursive_hint = if app.recursive { " R" } else { "" };
     let title = match app.mode {
         AppMode::Normal => format!(
-            "Scribe — {} doc(s) | dir: {} | target: {} | sort: {}{}",
+            "Scribe — {} doc(s) | dir: {} | sort: {}{}",
             app.list_len(),
             app.directory,
-            target_hint,
             app.sort.label(),
             recursive_hint,
         ),
         AppMode::Create => format!(
             "New [{}] in {} ({} existing)",
             app.chosen_template.name(),
-            app.target_label(),
+            app.directory,
             app.notes.len()
         ),
         AppMode::Rename => "Renaming…".to_string(),
-        AppMode::TemplatePick => format!("Choose a template (target: {})", app.target_label()),
+        AppMode::TemplatePick => "Choose a template".to_string(),
         AppMode::Search => {
             if app.search_query.is_empty() {
                 format!("Search — {} document(s)", app.notes.len())
@@ -305,9 +303,9 @@ fn draw_bottom_overlay(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         AppMode::Create => {
             let block = Block::default()
                 .title(format!(
-                    "New title  [{} template, {}] — Enter to create, Tab toggles target, Esc cancels",
+                    "New title  [{} template] in {} — Enter to create, Esc cancels",
                     app.chosen_template.name(),
-                    app.target_label(),
+                    app.directory,
                 ))
                 .borders(Borders::ALL)
                 .style(Style::default().fg(Color::Green));
@@ -356,9 +354,7 @@ fn draw_bottom_overlay(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
                 .map(|p| p.display().to_string())
                 .unwrap_or_else(|| "(no config dir)".to_string());
             let title = format!(
-                "Template (target: {}) — Enter confirm, Esc cancel — user dir: {}",
-                app.target_label(),
-                dir_hint
+                "Template — Enter confirm, Esc cancel — user dir: {dir_hint}"
             );
             let list = List::new(items)
                 .block(
@@ -391,12 +387,12 @@ fn draw_status_bar(f: &mut ratatui::Frame, app: &App, area: Rect) {
                 Color::Yellow,
             ),
             Pending::None => (
-                "j/k nav | o open | i new | r rename | t tpl | / search | Tab target | R recursive | s sort | c chdir | p preview | e export | dd delete | u undo | ? help | q quit".to_string(),
+                "j/k nav | o open | i new | r rename | t tpl | / search | R recursive | s sort | c chdir | H here | p preview | e export | dd delete | u undo | ? help | q quit".to_string(),
                 Color::Cyan,
             ),
         },
         AppMode::Create => (
-            "Type title (without .adoc) — Enter to create, Tab toggle target, Esc cancel".to_string(),
+            "Type title (without .adoc) — Enter to create, Esc cancel".to_string(),
             Color::Green,
         ),
         AppMode::Rename => (
@@ -404,7 +400,7 @@ fn draw_status_bar(f: &mut ratatui::Frame, app: &App, area: Rect) {
             Color::Magenta,
         ),
         AppMode::TemplatePick => (
-            "j/k choose | Enter confirm | Tab toggle target | Esc cancel".to_string(),
+            "j/k choose | Enter confirm | Esc cancel".to_string(),
             Color::Cyan,
         ),
         AppMode::Search => (
@@ -471,17 +467,17 @@ NAVIGATION
   j / Down      Next document
   k / Up        Previous document
   g / G         Top / bottom
-  Tab           Toggle target (notes dir <-> CWD)  -- in Normal: also toggles list/preview focus when preview is open
+  Tab           Toggle list/preview focus (only when preview is open)
   /             Open fuzzy search (filename + body)
   n / N         Re-enter last search (kept across modes)
   s             Cycle sort: name -> mtime↓ -> mtime↑ -> size↓
   R             Toggle recursive listing of subdirectories
   c             Open directory picker (recent dirs + free entry)
-  H             Jump to current working directory
+  H             Jump listing to current working directory
 
 DOCUMENT ACTIONS
   o             Open in $EDITOR
-  i             New document (uses current template, target indicator)
+  i             New document in the currently listed directory
   t             Choose template, then create
   r             Rename / move selected document
   d d           Soft-delete (moves to .scribe-trash)
@@ -693,20 +689,9 @@ fn handle_normal<B: Backend + std::io::Write>(
             app.mode = AppMode::Create;
             app.input.clear();
         }
-        KeyCode::Char('I') => {
-            // Legacy alias: capital-I forces CWD on this single action.
-            app.mode = AppMode::Create;
-            app.input.clear();
-            app.target_cwd = true;
-        }
         KeyCode::Char('t') => {
             app.mode = AppMode::TemplatePick;
             app.template_state.select(Some(0));
-        }
-        KeyCode::Char('T') => {
-            app.mode = AppMode::TemplatePick;
-            app.template_state.select(Some(0));
-            app.target_cwd = true;
         }
         KeyCode::Char('r') => {
             if let Some(path) = app.selected_path() {
@@ -773,15 +758,7 @@ fn handle_normal<B: Backend + std::io::Write>(
                     Focus::List => Focus::Preview,
                     Focus::Preview => Focus::List,
                 };
-            } else {
-                app.toggle_target();
-                app.set_status(format!("Target: {}", app.target_label()));
             }
-        }
-        KeyCode::BackTab => {
-            // Shift-Tab always toggles target (even with preview focus active).
-            app.toggle_target();
-            app.set_status(format!("Target: {}", app.target_label()));
         }
         KeyCode::Char('p') => {
             app.preview_open = !app.preview_open;
@@ -883,14 +860,11 @@ fn create_note_with_template(
 fn handle_create(app: &mut App, key: KeyEvent) -> io::Result<bool> {
     match key.code {
         KeyCode::Enter if !app.input.is_empty() => {
-            let target = app.target_dir();
+            let target = PathBuf::from(&app.directory);
             let input = app.input.clone();
             match create_note_with_template(app, &target, &input) {
                 Ok(path) => {
-                    let target_is_root = target == Path::new(&app.directory);
-                    if target_is_root {
-                        app.refresh_notes();
-                    }
+                    app.refresh_notes();
                     app.set_status(format!("Created {}", path.display()));
                 }
                 Err(e) => app.set_error(format!("Create failed: {e}")),
@@ -902,9 +876,6 @@ fn handle_create(app: &mut App, key: KeyEvent) -> io::Result<bool> {
         KeyCode::Esc => {
             app.input.clear();
             app.mode = AppMode::Normal;
-        }
-        KeyCode::Tab => {
-            app.toggle_target();
         }
         KeyCode::Char(c) => app.input.push(c),
         KeyCode::Backspace => {
@@ -961,9 +932,6 @@ fn handle_template_pick(app: &mut App, key: KeyEvent) -> io::Result<bool> {
             app.input.clear();
             app.mode = AppMode::Create;
         }
-        KeyCode::Tab => {
-            app.toggle_target();
-        }
         KeyCode::Char('j') | KeyCode::Down => {
             let selected = app.template_state.selected().unwrap_or(0);
             if selected + 1 < app.templates.len() {
@@ -989,7 +957,7 @@ fn handle_search<B: Backend + std::io::Write>(
     // Ctrl-N: create a new note titled after the current query.
     if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('n') {
         if !app.search_query.is_empty() {
-            let target = app.target_dir();
+            let target = PathBuf::from(&app.directory);
             let q = app.search_query.clone();
             match create_note_with_template(app, &target, &q) {
                 Ok(path) => {
