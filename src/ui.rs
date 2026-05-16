@@ -1,16 +1,16 @@
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{
-    Terminal,
     backend::Backend,
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    Terminal,
 };
 use std::{env, io, path::Path, path::PathBuf, process::Command, time::Duration};
 
@@ -63,9 +63,9 @@ fn ensure_preview(app: &mut App) {
     let path = Path::new(&app.directory).join(&name);
     let text = match render_preview(&path) {
         Ok(t) => t,
-        Err(e) => format!(
-            "[preview unavailable]\n\n{e}\n\nInstall `asciidoctor` to enable previews."
-        ),
+        Err(e) => {
+            format!("[preview unavailable]\n\n{e}\n\nInstall `asciidoctor` to enable previews.")
+        }
     };
     app.preview_cache = Some((name, text));
 }
@@ -321,9 +321,7 @@ fn draw_bottom_overlay(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
                 .map(|p| p.display().to_string())
                 .unwrap_or_else(|| "?".to_string());
             let block = Block::default()
-                .title(format!(
-                    "Rename {from} — Enter to confirm, Esc to cancel"
-                ))
+                .title(format!("Rename {from} — Enter to confirm, Esc to cancel"))
                 .borders(Borders::ALL)
                 .style(Style::default().fg(Color::Magenta));
             let input = Paragraph::new(app.input.as_str())
@@ -353,9 +351,7 @@ fn draw_bottom_overlay(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
             let dir_hint = user_templates_dir()
                 .map(|p| p.display().to_string())
                 .unwrap_or_else(|| "(no config dir)".to_string());
-            let title = format!(
-                "Template — Enter confirm, Esc cancel — user dir: {dir_hint}"
-            );
+            let title = format!("Template — Enter confirm, Esc cancel — user dir: {dir_hint}");
             let list = List::new(items)
                 .block(
                     Block::default()
@@ -666,10 +662,7 @@ fn handle_normal<B: Backend + std::io::Write>(
                             display_name: note.rel_path.clone(),
                         });
                         app.refresh_notes();
-                        app.set_status(format!(
-                            "Deleted {} — press 'u' to undo",
-                            note.rel_path
-                        ));
+                        app.set_status(format!("Deleted {} — press 'u' to undo", note.rel_path));
                     }
                     Err(e) => app.set_error(format!("Delete failed: {e}")),
                 }
@@ -722,7 +715,7 @@ fn handle_normal<B: Backend + std::io::Write>(
             app.search_query.clear();
             app.recompute_filter(false);
             app.set_status("Search cleared");
-         }
+        }
         KeyCode::Char('s') => {
             app.cycle_sort();
             app.set_status(format!("Sort: {}", app.sort.label()));
@@ -750,13 +743,11 @@ fn handle_normal<B: Backend + std::io::Write>(
                 }
             }
         }
-        KeyCode::Tab => {
-            if app.preview_open {
-                app.focus = match app.focus {
-                    Focus::List => Focus::Preview,
-                    Focus::Preview => Focus::List,
-                };
-            }
+        KeyCode::Tab if app.preview_open => {
+            app.focus = match app.focus {
+                Focus::List => Focus::Preview,
+                Focus::Preview => Focus::List,
+            };
         }
         KeyCode::Char('p') => {
             app.preview_open = !app.preview_open;
@@ -1046,15 +1037,11 @@ fn handle_dir_pick(app: &mut App, key: KeyEvent) -> io::Result<bool> {
                     app.recent_state.select(Some(sel - 1));
                 }
             }
-            KeyCode::Char('g') => {
-                if !app.recent_dirs.is_empty() {
-                    app.recent_state.select(Some(0));
-                }
+            KeyCode::Char('g') if !app.recent_dirs.is_empty() => {
+                app.recent_state.select(Some(0));
             }
-            KeyCode::Char('G') => {
-                if !app.recent_dirs.is_empty() {
-                    app.recent_state.select(Some(app.recent_dirs.len() - 1));
-                }
+            KeyCode::Char('G') if !app.recent_dirs.is_empty() => {
+                app.recent_state.select(Some(app.recent_dirs.len() - 1));
             }
             _ => {}
         },
