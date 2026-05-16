@@ -185,6 +185,7 @@ impl App {
 
         self.preview_cache = None;
     }
+}
 
     /// Recompute `filtered_indices` from `search_query`. If `preserve_selection`
     /// is true, try to keep the currently selected note highlighted.
