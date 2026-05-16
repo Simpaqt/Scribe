@@ -1,0 +1,19 @@
+= Journal — {{date}}
+{{author}}
+{{date}}
+
+== Summary
+
+A short summary of the day.
+
+== Notes
+
+* 
+
+== Tasks
+
+* [ ] 
+
+== Reflection
+
+What went well? What could be improved?

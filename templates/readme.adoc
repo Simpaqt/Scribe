@@ -1,0 +1,42 @@
+= {{title}}
+{{author}}
+{{date}}
+:toc: left
+:icons: font
+:source-highlighter: rouge
+
+== Overview
+
+Brief description of the project.
+
+== Features
+
+* Feature one
+* Feature two
+* Feature three
+
+== Installation
+
+[source,bash]
+----
+# installation steps
+----
+
+== Usage
+
+[source,bash]
+----
+# usage examples
+----
+
+== Configuration
+
+Describe configuration options here.
+
+== Contributing
+
+Contributions are welcome. Please open an issue or pull request.
+
+== License
+
+Specify the license here.

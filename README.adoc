@@ -1,0 +1,203 @@
+= Scribe
+simpa
+2026-05-16
+:toc: left
+:icons: font
+:source-highlighter: rouge
+
+== Overview
+
+Scribe is a terminal-native tool for writing, organising, previewing and
+exporting https://asciidoc.org/[AsciiDoc] notes and documentation. It started
+life as *Rustymemo*, a quick TUI for plain text notes, and grew into a
+focused AsciiDoc workflow that still gets out of the way and lets you edit in
+your favourite `$EDITOR`.
+
+== Features
+
+* Fast TUI for browsing AsciiDoc documents — flat or recursive (`R`)
+* Live directory switcher: hop between projects without leaving the TUI (`c`)
+* Built-in templates (blank, Technical README, daily journal) plus user
+  templates from `~/.config/scribe/templates/*.adoc`
+* Full-text fuzzy search across filenames *and* the first 4 KB of each doc
+* Rename / move (`r`) and soft-delete with undo (`d d` → `u`)
+* Sort by name, modified time, or size (`s` cycles)
+* Scrollable in-pane preview rendered by `asciidoctor` (`p`, `Tab` to focus)
+* One-key export to HTML or PDF (`e h` / `e p`)
+* Sticky status bar with a `?` help overlay
+* Headless CLI flags for scripting (`--new`, `--list`, `--export`,
+  `--recursive`, `--sort`)
+* Editor-agnostic — opens documents in `$EDITOR` (defaults to `nvim`)
+* Configurable storage directory via `--dir` or `$SCRIBE_DIR`
+
+== Installation
+
+=== Prerequisites
+
+* Rust 1.70+ and `cargo` (https://rustup.rs/[rustup])
+* `asciidoctor` (Ruby gem) — required for preview and HTML export
+* `asciidoctor-pdf` — optional, required only for PDF export
+* A terminal editor referenced by `$EDITOR` (defaults to `nvim`)
+
+[source,bash]
+----
+# Install the AsciiDoc toolchain (one-time)
+gem install asciidoctor asciidoctor-pdf
+----
+
+=== Build & install
+
+[source,bash]
+----
+git clone https://github.com/Simpaqt/Rustymemo.git
+cd Rustymemo
+cargo build --release
+install -m 0755 target/release/scribe ~/.local/bin/scribe
+----
+
+Make sure `~/.local/bin` (or wherever you placed the binary) is in your `PATH`.
+
+== Usage
+
+[source,bash]
+----
+scribe                       # launch the TUI on the default directory
+scribe --here                # launch the TUI on the current working directory
+scribe -H                    # short form of --here
+scribe --dir ~/docs          # use a custom directory
+SCRIBE_DIR=~/docs scribe     # same via env var
+scribe --list                # list documents and exit
+scribe --list -r             # list recursively
+scribe --list --sort mtime   # sort by modification time (newest first)
+scribe --new "Project Plan" --template readme           # create in ~/notes
+scribe -H --new "README" --template readme              # create in CWD
+scribe --export ~/docs/plan.adoc --format pdf -o ~/plan.pdf
+----
+
+=== Working in the current directory
+
+There are two ways to target your current shell directory instead of the
+configured notes directory:
+
+* *`-H` / `--here`* on the CLI applies to every command (TUI, `--new`,
+  `--list`, `--export`).
+* *Inside the TUI*, creation always lands in the directory you're currently
+  listing. Use *`c`* to open the directory picker (recent dirs + free path
+  entry), or *`H`* to jump the listing to your current shell directory.
+  Then `i` / `t` create the new doc there.
+
+=== Directory & format conventions
+
+* New documents always end with `.adoc` (added automatically if you forget).
+* The list view shows only `.adoc`/`.asciidoc` files by default. Pass
+  `--all` to include everything in the directory.
+* Default directory: `~/notes` (kept for backward compatibility with
+  Rustymemo). Override with `--dir` or `$SCRIBE_DIR`.
+
+=== Templates
+
+Selectable via `--template <name>` on the CLI, or in the TUI by pressing `t`:
+
+[cols="1,3"]
+|===
+| Name      | Description
+
+| `blank`   | Minimal AsciiDoc header
+| `readme`  | Technical README skeleton
+| `journal` | Date-stamped daily journal entry
+|===
+
+Templates substitute `{{title}}`, `{{author}}` (from `$USER`/`$USERNAME`) and
+`{{date}}` (today, `YYYY-MM-DD`).
+
+==== User templates
+
+Drop any `*.adoc` file into `$XDG_CONFIG_HOME/scribe/templates/` (or
+`~/.config/scribe/templates/`) and it will appear in the template picker
+under its file stem. The same `{{title}}`, `{{author}}`, `{{date}}`
+substitutions apply.
+
+=== Keybindings
+
+==== Normal mode
+
+[cols="1,3"]
+|===
+| Key       | Action
+
+| `j`/`k`   | Move down / up (arrows, `g` / `G`, `PgUp` / `PgDn` too)
+| `o`       | Open selected document in `$EDITOR`
+| `i`       | Create a new document in the currently listed directory
+| `t`       | Pick a template, then create
+| `r`       | Rename / move selected document
+| `d` `d`   | Soft-delete (moves to `<dir>/.scribe-trash/`)
+| `u`       | Undo last delete
+| `/`       | Open fuzzy search (filename + first 4 KB of body)
+| `n` / `N` | Re-enter / clear the last search
+| `s`       | Cycle sort: name → mtime↓ → mtime↑ → size↓
+| `R`       | Toggle recursive listing of subdirectories
+| `c`       | Open the directory picker (recent dirs + free entry)
+| `H`       | Jump the listing to the current working directory
+| `Tab`     | Toggle list / preview focus (only when preview is open)
+| `p`       | Toggle preview pane
+| `e` `h`   | Export selected document to HTML
+| `e` `p`   | Export selected document to PDF
+| `?`       | Help overlay
+| `q`       | Quit
+|===
+
+When the preview pane has focus (`Tab`), `j` / `k` / `g` / `G` / `PgUp` /
+`PgDn` scroll the preview instead of moving the list selection.
+
+==== Create mode
+
+Type the title (extension optional) and press `Enter`. `Esc` cancels.
+
+==== Template picker
+
+`j`/`k` to choose, `Enter` to confirm, `Esc` to cancel.
+
+==== Search mode
+
+Type to filter (filename + body fuzzy). Arrow keys navigate, `Enter` opens
+the highlighted match. *`Ctrl-N`* creates a new note titled after your
+current query and opens it. `Esc` clears the query.
+
+==== Rename mode
+
+Type the new path/name and press `Enter`. You can include subdirectories
+(e.g. `projects/foo/spec.adoc`) — parent dirs are created as needed. The
+`.adoc` extension is added if missing. `Esc` cancels.
+
+==== Directory picker
+
+`j`/`k` to choose from recent dirs, `Enter` to switch. Or type a path in the
+input box (`~` is expanded) and press `Enter`. `Esc` cancels.
+
+== Editor configuration
+
+Scribe respects `$EDITOR` everywhere. Fallbacks:
+
+* Linux/macOS: `nvim`
+* Windows: tried `code`, `notepad++`, then `notepad`
+
+[source,bash]
+----
+export EDITOR=hx     # or vim, nano, code, etc.
+----
+
+== Notes on the rename
+
+Scribe is the successor to *Rustymemo*. The repository name still reflects
+the original project, but the package and binary are now `scribe`. Existing
+notes in `~/notes` continue to work; only `.adoc`/`.asciidoc` files appear
+by default, so add `--all` if you still want to see your old plain-text
+notes.
+
+== Contributing
+
+Contributions are welcome. Please open an issue or pull request.
+
+'''
+
+Built with Rust, `ratatui`, `crossterm` and `clap`.

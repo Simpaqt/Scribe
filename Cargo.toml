@@ -1,12 +1,18 @@
 [package]
 authors = ["Simpa"]
-name = "Rustymemo"
-version = "0.1.0"
+name = "scribe"
+version = "0.2.5"
 edition = "2021"
+description = "A TUI for managing, previewing and exporting AsciiDoc notes & documentation"
+
+[[bin]]
+name = "scribe"
+path = "src/main.rs"
 
 [dependencies]
 dirs = "6.0.0"
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { version = "4.5.4", features = ["derive", "env"] }
 ratatui = "0.29.0"
 crossterm = "0.29.0"
 fuzzy-matcher = "0.3.7"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
