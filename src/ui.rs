@@ -718,13 +718,11 @@ fn handle_normal<B: Backend + std::io::Write>(
                 app.set_status("No previous search");
             }
         }
-        KeyCode::Char('N') => {
-            if !app.search_query.is_empty() {
-                app.search_query.clear();
-                app.recompute_filter(false);
-                app.set_status("Search cleared");
-            }
-        }
+        KeyCode::Char('N') if !app.search_query.is_empty() => {
+            app.search_query.clear();
+            app.recompute_filter(false);
+            app.set_status("Search cleared");
+         }
         KeyCode::Char('s') => {
             app.cycle_sort();
             app.set_status(format!("Sort: {}", app.sort.label()));

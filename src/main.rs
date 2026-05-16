@@ -23,8 +23,8 @@ fn main() -> io::Result<()> {
     let directory = if cli.here {
         std::env::current_dir()?
             .to_str()
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| ".".to_string())
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "current directory is not valid UTF-8"))?
+            .to_string()
     } else {
         resolve_notes_dir(cli.dir.as_deref())
     };

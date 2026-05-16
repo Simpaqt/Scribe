@@ -1,5 +1,5 @@
 use std::{
-    fs, io,
+ ?   fs, io,
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -71,18 +71,18 @@ pub fn strip_adoc_extension(name: &str) -> &str {
 /// Create a new note file at the specified path with the given contents.
 /// Creates parent directories as needed.
 pub fn create_new_note(file_path: &Path, contents: &str) -> Result<(), io::Error> {
-    if file_path.exists() {
-        return Err(io::Error::new(
-            io::ErrorKind::AlreadyExists,
-            format!("file already exists: {}", file_path.display()),
-        ));
-    }
+    use std::io::Write;
+
     if let Some(parent) = file_path.parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent)?;
         }
     }
-    fs::write(file_path, contents)
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(file_path)?;
+    file.write_all(contents.as_bytes())
 }
 
 /// Recognised AsciiDoc filename?
@@ -194,12 +194,14 @@ pub fn trash_dir(root: &str) -> PathBuf {
 pub fn soft_delete_note(root: &str, file_path: &Path) -> io::Result<PathBuf> {
     let trash = trash_dir(root);
     fs::create_dir_all(&trash)?;
-    let base = file_path
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "deleted".to_string());
-    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S");
-    let trashed = trash.join(format!("{ts}__{base}"));
+    let rel = file_path
+        .strip_prefix(root)
+        .unwrap_or(file_path)
+        .to_string_lossy()
+        .replace('/', "__")
+        .replace('\\', "__");
+    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S-%f");
+    let trashed = trash.join(format!("{ts}__{rel}"));
     fs::rename(file_path, &trashed)?;
     Ok(trashed)
 }

@@ -13,7 +13,7 @@ pub struct Cli {
     pub dir: Option<String>,
 
     /// Use the current working directory (shorthand for --dir .)
-    #[arg(short = 'H', long, conflicts_with = "dir")]
+    #[arg(short = 'H', long)]
     pub here: bool,
 
     /// Show all files in the directory, not just .adoc files

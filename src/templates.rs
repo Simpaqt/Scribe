@@ -1,4 +1,4 @@
-use chrono::Local;
+u;se chrono::Local;
 use std::path::PathBuf;
 
 /// A document template — either one of the built-ins compiled into the binary,
@@ -92,7 +92,9 @@ impl Template {
             _ => {}
         }
         // Fall back to user templates.
-        load_all().into_iter().find(|t| t.name() == name)
+        load_all()
+            .into_iter()
+            .find(|t| t.name().eq_ignore_ascii_case(name))
     }
 }
 
